@@ -2,8 +2,7 @@
 Module that handles parsing MD files and converting them to JSON
 """
 
-from markdownify import markdownify as md
-import markdown
+import sys
 import json
 import re
 
@@ -82,9 +81,39 @@ def json_to_md(json_obj: dict) -> str:
 
     return md_q + "\n"
 
+def check_md_q(md_q: str) -> None:
+    """
+    Validates a question format in MD and exits with error if invalid
+    :param md_q: a question stored in MD format
+    :return: None
+    """
+    q_title = md_q.split('\n')[0]
+    if not q_title.startswith('# '):
+        sys.exit(f'Error: Question starting with \"{q_title}\" does not have a title.')
+
+    q_title = q_title[2:]
+    q_fields = md_q.split('## ')
+
+    field_names = [f.split('\n')[0] for f in q_fields[1:]]
+    if 'Question Text' not in field_names or \
+        'Question Answers' not in field_names:
+        sys.exit(f'Error: No question text or answer set for question \"{q_title}\".')
+
+    q_ans = [s.rstrip('\n').split('\n')[1:] for s in q_fields if s.startswith('Question Answers')][0]
+    correct_answers_no = len([ans for ans in q_ans if ans[0] == '+'])
+    if correct_answers_no < 1:
+        sys.exit(f'Error: No correct answer set for question \"{q_title}\".')
+
 def md_to_json(md_q: str) -> str:
+    """
+    Generates a question in JSON format from MD string
+    :param md_q: a question stored in MD format
+    :return: a string representing a question in JSON format
+    """
     md_copy = str(md_q).rstrip()
     md_copy = re.sub(r'\n+', '\n', md_copy).strip('\n')
+
+    check_md_q(md_copy)
 
     question = {
         "name": "",
